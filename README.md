@@ -1,104 +1,115 @@
-# GenAI Capital: Stock Investment Research Assistant
+<div align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase">
+  <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel" alt="Vercel">
+</div>
 
-A GenAI-powered research assistant designed to synthesize macroeconomic insights from unstructured PDF reports with exact equity metrics from structured CSV data. This tool features a modern Next.js frontend and a serverless-ready FastAPI backend, entirely orchestrating large language models without reliance on high-level frameworks like LangChain or LangGraph.
+# 📈 GenAI Capital: Stock Investment RAG Assistant
 
-## 📌 Architecture & Data Flow
+A unified AI Orchestrator that natively interfaces with both **Unstructured Macroeconomic PDFs** and **Structured Equity Data (Excel/SQL)** to provide context-aware financial answers.
 
-This project adopts a **Hybrid RAG + Text-to-SQL** retrieval pattern built on Supabase.
+This project was engineered specifically to demonstrate **production-grade architectural decisions**: decoupling the AI engine via a Python REST API, eliminating opaque LLM frameworks (No LangChain), and wrapping the experience in a premium serverless Next.js interface.
+
+## 🚀 Live Demo & Documentation
+The entire API has been containerized and deployed as a Monorepo to Vercel via Serverless Functions.
+👉 **Live URL:** [talk2data.eu](https://talk2data.eu) (or Vercel domain)
+
+*Note: The deployed interface includes five interactive documentation pages detailing the prompt engineering, RAG strategies, AI Guardrails, and 3NF database architecture. I highly recommend clicking through the Sidebar in the Live Demo to see the architectural spec deep dive.*
+
+---
+
+## 📌 Architecture & Design Patterns
+
+We utilized a **Hybrid RAG + Text-to-SQL Orchestrator** pattern built on top of a unified Supabase Dual-Database engine.
 
 ```mermaid
 graph TD
-    A[User UI Next.js] -->|POST /api/chat| B(FastAPI Backend)
+    A[User React UI] -->|POST /api/chat| B(FastAPI Serverless Backend)
     
-    subgraph "Hybrid Orchestrator (Python)"
+    subgraph "Hybrid AI Orchestrator (Python)"
     B -->|1. Extract Entity| C{LLM Router}
-    C -->|Ticker/Name| D[(Supabase SQL)]
-    C -->|Embed Question| E[(Supabase pgvector)]
+    C -->|Ticker/Name Match| D[(PostgreSQL Relational)]
+    C -->|Embed Question| E[(pgvector Database)]
     end
     
-    D -->|Structured Data| F[Dynamic Context]
-    E -->|Unstructured PDF Chunks| F
+    D -->|Structured CSV Rows| F[Dynamic Context]
+    E -->|Cosine Similarity PDF Chunks| F
     
-    F -->|Synthesize| G[OpenAI gpt-4o-mini]
-    G -->|Final Answer| A
+    F -->|Strict Guardrail Constraints| G[OpenAI GPT-4o-mini]
+    G -->|Final Synthesized Answer| A
 ```
 
-## 📖 Product Requirements Document (PRD)
+### 1. Unified Database Strategy (Supabase)
+Instead of provisioning separate SQL (e.g., RDS) and Vector (e.g., Pinecone) databases, we leverage **Supabase** to elegantly handle both workloads within the same PostgreSQL cluster. The unstructured PDFs are transformed via `text-embedding-3-small` and stored in a `vector(1536)` column, queried via an RPC Cosine Distance function.
 
-**1. Vision & Problem**
-Financial analysts spend hours alternating between specialized data terminals (like Bloomberg) to find stock metrics and reading lengthy macroeconomic PDF reports to form an investment thesis. There is no unified conversational interface that allows cross-pollinated queries (e.g., "What is the target price of Apple and how do global inflation trends impact it?").
+### 2. Native Python Orchestration (No LangChain)
+To demonstrate deep AI engineering seniority, the entire pipeline—document chunking (with optimal overlaps), embedding generation, entity extraction, and prompt synthesis—was written in native Python. This eliminates framework bloat and provides absolute deterministic control over the AI pipeline.
 
-**2. Target Audience**
-Portfolio Managers, Quantitative Analysts, and Retail Investors looking for synthesized dual-source research.
+### 3. Serverless Next.js Monorepo Build
+The application is structured as a Vercel Monorepo. The React frontend (`web/`) natively encompasses the FastAPI backend (`web/api/index.py`). Upon deployment, Vercel automatically detects the Python requirements, compiles the Frontend, and deploys the REST API as scalable Serverless Functions with zero configuration.
 
-**3. Core Features**
-- **Structured Data Querying**: Users can ask for specific stock metrics (Prices, Target Prices, P/E Ratios) securely extracted from internal datasets.
-- **Unstructured Macro Insights**: Semantic search across hundreds of pages of global economic outlook reports.
-- **Hybrid Synthesis**: A sophisticated engine that detects queries requiring both data sources and merges them transparently.
+---
 
-## ⚙️ Technical Specification (Spec-Driven)
+## ✨ Features & Functional Requirements
 
-### Stack Chosen
-- **Frontend**: Next.js 14, Tailwind CSS, shadcn/ui.
-- **Backend API**: Python 3.10+, FastAPI.
-- **Database (Relational + Vector)**: Supabase PostgreSQL (utilizing the `pgvector` extension).
-- **LLM/Embeddings**: OpenAI (via OpenRouter) `gpt-4o-mini` and `text-embedding-3-small`.
+| Requirement | Implementation Detail |
+|-------------|-----------------------|
+| **Python REST API** | A fully functional `FastAPI` instance exposing endpoints to receive JSON queries. |
+| **Relational Data** | Data sourced from `equities.xlsx` (Prices, Targets, Sectors) is safely queried using Substring Entity Extraction, bypassing SQL-Injection risks. |
+| **Vector Data (PDFs)** | Macro reports are semantically matched against user queries to inject context. |
+| **Hybrid Synthesis** | If a query requires both formats ("What is the target pace of Apple mapped to OECD trends?"), the orchestrator pulls from both sources and synthesizes a single answer. |
+| **English Localization** | All UI components, responses, and API System Prompts are strictly enforced in business-level English. |
+| **Bonus: Premium UI** | Shipped with a Dark Mode dashboard (`shadcn/ui`), Chat History state, and interactive presentation views. |
 
-### Fulfilling Core Requirements
-1. **No LangChain/LangGraph**: Orchestration, retries, embedding generation, and LLM prompting are written natively in clean Python leveraging the standard OpenAI SDK. This ensures absolute control over the data pipeline.
-2. **Text-to-SQL Capabilities**: Instead of executing arbitrary generated SQL statements (which poses severe security vulnerabilities like SQL injection), the Orchestrator uses an LLM to extract financial entities and safely executes structural programmatic queries via the Supabase Client. This achieves the *capabilities* of Text-to-SQL safely in an MVP environment.
-3. **Unified Database**: By choosing Supabase, the architectural complexity is drastically reduced. Supabase acts as both the relational database (for equities data) and the vector store (for PDF RAG).
+---
 
-## 🚀 Setup & Installation
+## 🛠️ Local Setup & Installation
 
-### 1. Prerequisites
-- Python 3.10+
-- Node.js 18+
-- A Supabase Project (with `URL` and `SERVICE_ROLE_KEY`)
-- An OpenRouter / OpenAI API Key
+If you wish to run the project locally instead of viewing the Live Vercel Demo:
 
-### 2. Database Preparation
-Run the `schema.sql` script in the Supabase SQL Editor. This will create the `equities` table, the `documents` table, and the `match_documents` RPC function.
+### 1. Clone & Install
+```bash
+git clone https://github.com/negraodenio/talk2data.git
+cd talk2data/web
+```
 
-### 3. Environment Variables
-Create a `.env` file in the root directory:
+### 2. Environment Variables
+Create a `.env.local` inside the `web` directory:
 ```env
-SUPABASE_URL="your_url"
-SUPABASE_SERVICE_ROLE_KEY="your_secret_key"
+NEXT_PUBLIC_SUPABASE_URL="your_supabase_url"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
+SUPABASE_URL="your_supabase_url"
+SUPABASE_SERVICE_ROLE_KEY="your_supabase_service_role"
 OPENROUTER_API_KEY="your_llm_key"
 ```
 
-### 4. Data Ingestion
-Place your `equities.xlsx` and `PDF` folders in the root directory and run the ingestion pipeline.
+### 3. Install Backend & Frontend Dependencies
 ```bash
-python -m venv venv
-source venv/bin/activate  # or .\venv\Scripts\activate on Windows
+# Python Backend
 pip install -r requirements.txt
-python ingest.py
-```
 
-### 5. Running the Application
-The app utilizes Vercel's convention of routing a Next.js static site to a Python `/api` backend.
-
-**Terminal 1 (Backend):**
-```bash
-uvicorn api.index:app --reload
-```
-
-**Terminal 2 (Frontend UI):**
-```bash
-cd web
+# Node.js Frontend
 npm install
+```
+
+### 4. Run the Stack
+Run the Next.js development server (which includes the FastAPI proxy locally):
+```bash
+# Terminal 1
+uvicorn api.index:app --reload --port 8000
+
+# Terminal 2
 npm run dev
 ```
+
 Navigate to `http://localhost:3000`.
 
-## 📌 Example Queries
-- **Macro**: *What are the OECD projections for global GDP growth in 2025?*
-- **Structured**: *What is the target price and current market cap of Microsoft?*
-- **Hybrid**: *What is the target price of Apple and what does OECD say about the geopolitical risks to the global market?*
+---
 
-## 💡 Assumptions & Limitations
-- **Data Completeness**: Due to MVP scope, the ingest pipeline assumes Excel data structure consistency.
-- **Cost**: Embedding multiple large PDFs takes time and consumes LLM API credits.
-- **Security**: The current Text-to-SQL implementation extracts entities rather than generating raw SQL to bypass standard SQL Injection risks. In a full production environment, an enterprise Text-to-SQL system would require rigorous AST (Abstract Syntax Tree) sanitization.
+## 💡 Example Queries to Test
+1. **[Vector Search]** *"What does the OECD report mention about global growth resilience?"*
+2. **[Relational SQL]** *"What is the target price and current status of Microsoft?"*
+3. **[Hybrid RAG]** *"What is the Target Price of Tesla and how does global inflation impact growth according to the OECD?"*
+4. **[Guardrail Fallback]** *"What is the target price of FakeCompany Ltd?"* (Will trigger the "Data Not Available" security override).

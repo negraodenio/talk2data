@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from openai import OpenAI
-import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -68,7 +68,7 @@ async def chat(request: Request):
                 response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").limit(3).execute()
             
             if response.data:
-                context_text += f"\n--- DADOS ESTRUTURADOS (Relacional SQL) ---\n{str(response.data)}\n"
+                context_text += f"\n--- STRUCTURED DATA (Relational SQL) ---\n{json.dumps(response.data, indent=2)}\n"
                 used_sql = True
     except Exception as e:
         print("Erro na extração de entidade:", e)
@@ -85,7 +85,7 @@ async def chat(request: Request):
             response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 3}).execute()
             if response.data:
                 docs = [doc['content'] for doc in response.data]
-                context_text += f"\n--- DOCUMENTOS MACROECONÔMICOS (Vetorial RAG) ---\n" + "\n\n".join(docs)
+                context_text += f"\n--- MACROECONOMIC DOCUMENTS (Vector RAG) ---\n" + "\n\n".join(docs)
                 used_rag = True
         except Exception as e:
             print("Erro na busca vetorial:", e)

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+supabase
+pandas
+openai
+pypdf
+python-dotenv
+tiktoken
+openpyxl

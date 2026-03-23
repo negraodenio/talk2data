@@ -19,11 +19,13 @@ export default function ReadmePage() {
             <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
               A unified AI Orchestrator interfacing natively with Unstructured Macroeconomic PDFs & Structured Equity Data.
             </p>
-            <div className="flex items-center justify-center gap-3 pt-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
               <span className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-xs font-medium">Python 3.12</span>
               <span className="px-3 py-1 bg-black text-white border border-zinc-700/50 rounded-full text-xs font-medium">Next.js 14</span>
               <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium">Supabase</span>
               <span className="px-3 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full text-xs font-medium">FastAPI</span>
+              <span className="px-3 py-1 bg-zinc-800 text-zinc-100 border border-zinc-700/50 rounded-full text-xs font-medium">Vercel</span>
+              <span className="px-3 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full text-xs font-medium">Cloudflare</span>
             </div>
           </div>
 

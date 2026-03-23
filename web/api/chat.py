@@ -69,7 +69,10 @@ async def chat(request: Request):
                 response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").limit(3).execute()
             
             if response.data:
-                context_text += f"\n--- STRUCTURED DATA (Relational SQL) ---\n{json.dumps(response.data, indent=2)}\n"
+                sql_rows = ""
+                for row in response.data:
+                    sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${row.get('stock_price')} | Market Cap: ${row.get('market_cap')} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
+                context_text += f"\n--- STOCK MARKET DATABASE ---\n{sql_rows}\n"
                 used_sql = True
     except Exception as e:
         print("Erro na extração de entidade:", e)
@@ -83,10 +86,11 @@ async def chat(request: Request):
             res = client.embeddings.create(input=question, model="openai/text-embedding-3-small")
             query_embedding = res.data[0].embedding
             
-            response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 3}).execute()
+            # Aumentado para 5 para dar mais fôlego à resposta híbrida
+            response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 5}).execute()
             if response.data:
                 docs = [doc['content'] for doc in response.data]
-                context_text += f"\n--- MACROECONOMIC DOCUMENTS (Vector RAG) ---\n" + "\n\n".join(docs)
+                context_text += f"\n--- MACROECONOMIC REPORTS (PDF RAG) ---\n" + "\n\n".join(docs)
                 used_rag = True
         except Exception as e:
             print("Erro na busca vetorial:", e)
@@ -103,17 +107,19 @@ async def chat(request: Request):
     # 3. Gerar Resposta Final com Agente de Síntese
     prompt = f"""
     You are a Senior Investment Research Assistant for GenAI Capital.
-    The user is asking a financial question. Below is the dynamically extracted context from internal structured databases (SQL) and macroeconomic PDFs (Vector Search).
+    The user is asking a financial question. Synthesize an answer based on the context provided below.
     
-    Dynamically Extracted Context:
+    [CONTEXT DATA]
     {context_text}
     
-    User Query: {question}
+    [USER QUERY]
+    {question}
     
-    Critical Rules:
-    1. You MUST answer ONLY using the provided Extracted Context. Look for JSON keys like 'market_cap' or 'stock_price' if the user asks for financial metrics.
-    2. If the context provided (SQL or RAG) is entirely missing information for the requested entities, firmly declare: "I do not have enough information available in the internal sources to answer this."
-    3. YOUR FINAL RESPONSE MUST ALWAYS BE 100% IN ENGLISH, no matter what language the user types. This is a strict systemic requirement.
+    [CRITICAL RULES]
+    1. ANSWER ONLY using the provided Context. 
+    2. If the data for a specific part of the query is missing, say you don't have it for that part, but answer the rest.
+    3. If the entire context is unrelated, say you don't have enough information.
+    4. FINAL RESPONSE ALWAYS IN ENGLISH.
     """
     
     try:

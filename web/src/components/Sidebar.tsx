@@ -48,6 +48,10 @@ export default function Sidebar() {
               <ListChecks className="w-4 h-4" />
               <span>Requirements Tracker</span>
             </Link>
+            <Link href="/readme" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
+              <FileText className="w-4 h-4" />
+              <span>Main README</span>
+            </Link>
             <Link href="/source-code" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 p-2 rounded-lg transition-colors">
               <Terminal className="w-4 h-4" />
               <span>Python Source Code</span>

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from openai import OpenAI
+import os
 import json
 from dotenv import load_dotenv
 

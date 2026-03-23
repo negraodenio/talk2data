@@ -73,18 +73,22 @@ async def chat(request: Request):
     except Exception as e:
         print("Erro na extração de entidade:", e)
 
-    # 2. Busca RAG nos PDFs (Sempre rodar para ver se há contexto macro)
-    try:
-        res = client.embeddings.create(input=question, model="openai/text-embedding-3-small")
-        query_embedding = res.data[0].embedding
-        
-        response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 3}).execute()
-        if response.data:
-            docs = [doc['content'] for doc in response.data]
-            context_text += f"\n--- DOCUMENTOS MACROECONÔMICOS (Vetorial RAG) ---\n" + "\n\n".join(docs)
-            used_rag = True
-    except Exception as e:
-        print("Erro na busca vetorial:", e)
+    # 2. Busca RAG nos PDFs (Intent Router: Só rodar se houver contexto macro ou se o SQL falhou)
+    macro_keywords = ["macro", "oecd", "inflation", "growth", "tariffs", "global", "economy", "impact", "trends", "report", "resilience"]
+    requires_macro = any(word in question.lower() for word in macro_keywords)
+    
+    if requires_macro or not used_sql:
+        try:
+            res = client.embeddings.create(input=question, model="openai/text-embedding-3-small")
+            query_embedding = res.data[0].embedding
+            
+            response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 3}).execute()
+            if response.data:
+                docs = [doc['content'] for doc in response.data]
+                context_text += f"\n--- DOCUMENTOS MACROECONÔMICOS (Vetorial RAG) ---\n" + "\n\n".join(docs)
+                used_rag = True
+        except Exception as e:
+            print("Erro na busca vetorial:", e)
 
     if used_sql and used_rag:
         source_used = "Híbrido (SQL Data + PDF Vectors)"

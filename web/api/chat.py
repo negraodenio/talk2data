@@ -111,8 +111,8 @@ async def chat(request: Request):
     User Query: {question}
     
     Critical Rules:
-    1. You MUST answer ONLY using the provided Extracted Context. Do not invent financial math or prices from your own knowledge.
-    2. If there is not enough information in the context to answer the question, firmly declare: "I do not have enough information available in the internal sources to answer this."
+    1. You MUST answer ONLY using the provided Extracted Context. Look for JSON keys like 'market_cap' or 'stock_price' if the user asks for financial metrics.
+    2. If the context provided (SQL or RAG) is entirely missing information for the requested entities, firmly declare: "I do not have enough information available in the internal sources to answer this."
     3. YOUR FINAL RESPONSE MUST ALWAYS BE 100% IN ENGLISH, no matter what language the user types. This is a strict systemic requirement.
     """
     

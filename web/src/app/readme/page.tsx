@@ -1,4 +1,4 @@
-import { BookOpen, Terminal, Database, Code2, ListChecks, PlayCircle } from "lucide-react";
+import { BookOpen, Terminal, Database, Code2, ListChecks, PlayCircle, ShieldCheck } from "lucide-react";
 
 export default function ReadmePage() {
   return (
@@ -15,6 +15,7 @@ export default function ReadmePage() {
           
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold text-white tracking-tight">GenAI Capital: RAG Assistant</h1>
+            <p className="text-lg text-emerald-400 font-medium">Senior AI Engineer Technical Assessment</p>
             <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
               A unified AI Orchestrator interfacing natively with Unstructured Macroeconomic PDFs & Structured Equity Data.
             </p>
@@ -53,40 +54,57 @@ export default function ReadmePage() {
 
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold text-white flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <ListChecks className="w-5 h-5 text-indigo-400" /> Features & Functional Requirements
+              <ListChecks className="w-5 h-5 text-indigo-400" /> Fulfillment of Core Requirements
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left border-collapse">
                 <thead className="bg-zinc-900/80 text-zinc-300">
                   <tr>
-                    <th className="p-4 border border-zinc-800 rounded-tl-lg font-semibold">Requirement</th>
-                    <th className="p-4 border border-zinc-800 rounded-tr-lg font-semibold">Implementation Detail</th>
+                    <th className="p-4 border border-zinc-800 rounded-tl-lg font-semibold w-1/3">Requirement</th>
+                    <th className="p-4 border border-zinc-800 rounded-tr-lg font-semibold">Implementation Evidence</th>
                   </tr>
                 </thead>
                 <tbody className="text-zinc-400">
                   <tr className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">Python REST API</td>
-                    <td className="p-4 border border-zinc-800">A fully functional <code>FastAPI</code> instance exposing endpoints to receive JSON queries.</td>
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">1. Utilize Python</td>
+                    <td className="p-4 border border-zinc-800">The entire backend parsing, embedding, and LLM Orchestration logic is built in Native Python (<code>web/api/chat.py</code>).</td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">Relational Data</td>
-                    <td className="p-4 border border-zinc-800">Data sourced from <code>equities.xlsx</code> (Prices, Targets) is safely queried using Substring Entity Extraction.</td>
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">2. Relational Database</td>
+                    <td className="p-4 border border-zinc-800">Data sourced from <code>equities.xlsx</code> was loaded into a 3NF-compliant Supabase PostgreSQL instance. Safely queried bypassing SQL-Injection risks.</td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">Vector Data (PDFs)</td>
-                    <td className="p-4 border border-zinc-800">Macro reports are semantically matched against user queries to inject context via Cosine Similarity.</td>
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">3. Vector Database</td>
+                    <td className="p-4 border border-zinc-800">Macro reports are semantically matched against user queries via Cosine Similarity powered by OpenAI and Supabase <code>pgvector</code>.</td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">Hybrid Synthesis</td>
-                    <td className="p-4 border border-zinc-800">If a query requires both formats, the orchestrator pulls from both sources and synthesizes a single unified response.</td>
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">4. NO LangChain / Wrappers</td>
+                    <td className="p-4 border border-zinc-800">Zero orchestration libraries were used. Semantic routing, retrieval, and synthesis are executed programmatically via the raw OpenAI SDK.</td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">English Localization</td>
-                    <td className="p-4 border border-zinc-800">All UI components, responses, and API System Prompts are strictly enforced in business-level English.</td>
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">5. English Localization</td>
+                    <td className="p-4 border border-zinc-800">All UI components, responses, and API System Prompts are strictly enforced in business-level English natively via systemic instruction overrides.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-900/30 transition-colors">
+                    <td className="p-4 border border-zinc-800 text-zinc-200 font-medium">6. User Interface (Bonus)</td>
+                    <td className="p-4 border border-zinc-800">Elevated beyond a CLI script: Contains a Full-Stack modern Next.js 14 Application deployed via Vercel Edge Serverless Functions.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold text-white flex items-center gap-2 border-b border-zinc-800 pb-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-400" /> Production & Security Roadmap
+            </h2>
+            <p className="leading-relaxed text-sm">
+              While this is a 48h MVP, it was uniquely structured on the Next.js+Supabase monolithic stack to allow immediate scale into production:
+            </p>
+            <ul className="list-disc list-inside space-y-2 pl-4 text-sm text-zinc-400">
+              <li><strong>Supabase Auth (JWT):</strong> The architecture is prepared to inject JWT Bearer Tokens from the frontend to the Python API, enabling isolated, secure user chat histories.</li>
+              <li><strong>Row Level Security (RLS):</strong> By migrating from Anon Keys to Authenticated Keys, Postgres RLS can govern which investor sees which equity data natively at the database layer.</li>
+            </ul>
           </section>
 
           <section className="grid md:grid-cols-2 gap-8">
@@ -106,10 +124,11 @@ export default function ReadmePage() {
               <div className="bg-black rounded-lg p-4 font-mono text-xs border border-zinc-800 text-zinc-400">
                 <p className="text-emerald-500 mb-1"># Python Backend</p>
                 <p>python -m venv venv</p>
-                <p>pip install -r requirements.txt</p>
-                <p>uvicorn api.chat:app --reload</p>
+                <p>pip install -r web/requirements.txt</p>
+                <p>uvicorn web.api.chat:app --reload</p>
                 <br />
                 <p className="text-emerald-500 mb-1"># Frontend React</p>
+                <p>cd web</p>
                 <p>npm install</p>
                 <p>npm run dev</p>
               </div>

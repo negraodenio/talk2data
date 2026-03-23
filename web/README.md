@@ -50,6 +50,16 @@ graph TD
 
 ---
 
+## ⚙️ Model Configuration & Hyperparameters
+To ensure financial auditing stability and eliminate creative hallucinations:
+- **LLM Engine:** `gpt-4o-mini` (via OpenRouter)
+- **Temperature:** `0.1` (Strict factual adherence)
+- **Top-P:** `1.0`
+- **Embedding Model:** `text-embedding-3-small` (1536-dimensional vectors)
+- **Chunking Strategy:** 1000 tokens with 200 token overlap.
+
+---
+
 ## 🛡️ Production & Security Considerations (Roadmap)
 While this is a 48h MVP, it was uniquely structured on the Next.js+Supabase stack to allow immediate scale into production:
 1. **Supabase Auth (JWT):** The architecture is prepared to inject JWT Bearer Tokens from the frontend to the Python API, enabling isolated, secure user chat histories.

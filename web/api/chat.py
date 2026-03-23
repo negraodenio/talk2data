@@ -118,8 +118,9 @@ async def chat(request: Request):
     
     try:
         completion = client.chat.completions.create(
-            model="openai/gpt-4o-mini", # Usando OpenRouter ID
-            messages=[{"role": "user", "content": prompt}]
+            model="openai/gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1
         )
         answer = completion.choices[0].message.content
     except Exception as e:

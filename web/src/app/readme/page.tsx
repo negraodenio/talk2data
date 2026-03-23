@@ -109,6 +109,30 @@ export default function ReadmePage() {
             </ul>
           </section>
 
+          <section className="space-y-4 bg-zinc-900/40 p-6 rounded-2xl border border-zinc-800/50">
+            <h2 className="text-2xl font-semibold text-white flex items-center gap-2 border-b border-zinc-800 pb-2">
+              <Terminal className="w-5 h-5 text-indigo-400" /> Model Configuration & Hyperparameters
+            </h2>
+            <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+              <div className="p-3 bg-black/40 rounded border border-zinc-800">
+                <span className="text-zinc-500 block mb-1">LLM Engine</span>
+                <span className="text-indigo-400">gpt-4o-mini</span>
+              </div>
+              <div className="p-3 bg-black/40 rounded border border-zinc-800">
+                <span className="text-zinc-500 block mb-1">Temperature</span>
+                <span className="text-emerald-400">0.1 (Strict Control)</span>
+              </div>
+              <div className="p-3 bg-black/40 rounded border border-zinc-800">
+                <span className="text-zinc-500 block mb-1">Embedding</span>
+                <span className="text-blue-400">text-embedding-3-small</span>
+              </div>
+              <div className="p-3 bg-black/40 rounded border border-zinc-800">
+                <span className="text-zinc-500 block mb-1">Top-P</span>
+                <span className="text-fuchsia-400">1.0</span>
+              </div>
+            </div>
+          </section>
+
           <section className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold text-white flex items-center gap-2 border-b border-zinc-800 pb-2">

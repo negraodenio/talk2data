@@ -21,20 +21,15 @@ supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get(
 client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.environ.get("OPENROUTER_API_KEY"))
 
 # --- HELPERS ---
-def classify_query(q):
-    prompt = f"Analyze: '{q}'. Return ONLY 'company_specific', 'macro_only', or 'hybrid'."
-    res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-    return res.choices[0].message.content.strip().lower()
-
 def extract_entities(q):
     prompt = f"Extract company names/tickers from: '{q}'. Return COMMA-SEPARATED list or 'NONE'. Ignore macro names like OECD."
-    res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+    res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0)
     content = res.choices[0].message.content.strip()
     return [] if content == "NONE" else [e.strip() for e in content.split(",")]
 
 # --- ENDPOINTS ---
 @app.get("/")
-def health(): return {"status": "online", "source": "ULTRA-GOLD-ORCHESTRATOR"}
+def health(): return {"status": "online", "source": "ULTRA-GOLD-ORCHESTRATOR-V5"}
 
 @app.post("/api/chat")
 async def chat(request: Request):
@@ -44,37 +39,31 @@ async def chat(request: Request):
     ctx = ""
     sources = []
     
-    q_type = classify_query(q)
-    
-    # 1. SQL PATH
-    if q_type in ['company_specific', 'hybrid']:
-        entities = extract_entities(q)
-        for ent in entities:
-            # Busca por nome ou ticker
-            res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(2).execute()
-            if not res.data:
-                res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(2).execute()
-            
-            if res.data:
-                ctx += f"\n[SQL DATA FOR {ent.upper()}]:\n"
-                for row in res.data:
-                    for k, v in row.items():
-                        ctx += f"   - {k}: {v}\n"
-                sources.append("SQL Database")
+    # 1. SEMPRE BUSCAR SQL (Para garantir que NADA escape)
+    entities = extract_entities(q)
+    for ent in entities:
+        # Busca por ticker ou nome (ilike handle both)
+        res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(1).execute()
+        if not res.data:
+            res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(1).execute()
+        
+        if res.data:
+            ctx += f"\n--- [SQL DATA FOR {ent.upper()}] ---\n"
+            for row in res.data:
+                for k, v in row.items(): ctx += f"   - {k}: {v}\n"
+            sources.append("SQL Database")
 
-    # 2. RAG PATH
-    if q_type in ['macro_only', 'hybrid']:
-        try:
-            emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
-            emb = emb_res.data[0].embedding
-            rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 5}).execute()
-            if rag_res.data:
-                ctx += "\n[MACROECONOMIC REPORTS (PDF RAG)]:\n" + "\n\n".join([d['content'] for d in rag_res.data])
-                sources.append("Macro Vector Store")
-        except Exception as e:
-            print(f"RAG Error: {e}")
+    # 2. SEMPRE BUSCAR RAG (Para garantir contexto macro)
+    try:
+        emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
+        emb = emb_res.data[0].embedding
+        rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 5}).execute()
+        if rag_res.data:
+            ctx += "\n--- [MACROECONOMIC REPORTS (PDF RAG)] ---\n" + "\n\n".join([d['content'] for d in rag_res.data])
+            sources.append("Macro Vector Store")
+    except: pass
 
-    # 3. DETERMINAR LABEL PROFISSIONAL
+    # 3. LABEL PROFISSIONAL (Exatamente como o usuário quer)
     final_sources = list(set(sources))
     if "SQL Database" in final_sources and "Macro Vector Store" in final_sources:
         source_label = "Híbrido (SQL + RAG)"
@@ -88,10 +77,10 @@ async def chat(request: Request):
     # 4. SYNTHESIS
     prompt = f"""Use this context to answer: '{q}'
     
-    1. STYLE: Professional Investment Analyst. 
-    2. DATA: market_cap is in MILLIONS (e.g., 2,425,500 = 2.4 Trillion). Always say 'Trillion' or 'Billion'.
-    3. TARGET PRICE: Search for 'target_price' in SQL context. If found, state it clearly.
-    4. NO HALLUCINATION: If a metric is missing, say you don't have it.
+    1. STYLE: Senior Financial Analyst. 
+    2. DATA: 'market_cap' is in MILLIONS, so '2,425,500' = 2.4 Trillion. 'pe_ratio' exists.
+    3. MANDATORY: Search for 'target_price' in SQL context. If found, STATE IT.
+    4. NO HALLUCINATION: If a metric is missing in context, say I don't have it.
     
     Context:
     {ctx}"""
@@ -100,6 +89,5 @@ async def chat(request: Request):
     
     return {
         "answer": comp.choices[0].message.content,
-        "source": source_label,
-        "type": q_type
+        "source": source_label
     }

@@ -32,6 +32,10 @@ export default function Sidebar() {
               <Blocks className="w-4 h-4" />
               <span>System Architecture</span>
             </Link>
+            <Link href="/spec" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Technical Spec (PRD)</span>
+            </Link>
             <Link href="/guardrails" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 p-2 rounded-lg transition-colors">
               <Shield className="w-4 h-4" />
               <span>AI Guardrails</span>

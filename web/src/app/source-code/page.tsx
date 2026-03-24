@@ -40,8 +40,8 @@ try:
     entity = ext_res.choices[0].message.content.strip()
     
     if entity != "NONE" and len(entity) > 1:
-        # Relational search in Supabase (SQL)
-        response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").limit(3).execute()
+        # Relational search in Supabase (SQL) - Sequential Search (Ticker then Name)
+        response = supabase.table("equities").select("*").or(f"ticker.ilike.%{entity}%,name.ilike.%{entity}%").limit(2).execute()
         
         if response.data:
             context_text += f"\\n--- STRUCTURED DATA ---\\n{str(response.data)}\\n"

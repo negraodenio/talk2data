@@ -41,7 +41,7 @@ async def chat(request: Request):
     used_sql = False
     used_rag = False
     
-    # 1. ALWAYS SEARCH SQL
+    # 1. ALWAYS SEARCH SQL (Parallel)
     entities = extract_entities(q)
     for ent in entities:
         # Search BOTH ticker and name
@@ -49,23 +49,22 @@ async def chat(request: Request):
         res = supabase.table("equities").select("*").or_(f"ticker.ilike.%{clean_ent}%,name.ilike.%{clean_ent}%").limit(1).execute()
         
         if res.data:
-            ctx += f"\n--- [STOCK DATA: {clean_ent.upper()}] ---\n"
+            ctx += f"\n--- [SQL DATA: {clean_ent.upper()}] ---\n"
             for row in res.data:
                 for k, v in row.items(): 
                     ctx += f"   - {k}: {v}\n"
             used_sql = True
 
-    # 2. ALWAYS SEARCH RAG (If not too short)
-    if len(q.split()) > 3:
-        try:
-            emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
-            emb = emb_res.data[0].embedding
-            rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 5}).execute()
-            if rag_res.data:
-                docs = [d['content'] for d in rag_res.data]
-                ctx += "\n--- [MACROECONOMIC REPORTS (PDF RAG)] ---\n" + "\n\n".join(docs)
-                used_rag = True
-        except: pass
+    # 2. ALWAYS SEARCH RAG (Always-on, NO length check)
+    try:
+        emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
+        emb = emb_res.data[0].embedding
+        rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 5}).execute()
+        if rag_res.data:
+            docs = [d['content'] for d in rag_res.data]
+            ctx += "\n--- [MACROECONOMIC REPORTS (PDF RAG)] ---\n" + "\n\n".join(docs)
+            used_rag = True
+    except: pass
 
     # 3. SOURCE LABELING (STRICT)
     if used_sql and used_rag: label = "Híbrido (Dados de Mercado + Relatórios Macro)"
@@ -74,12 +73,14 @@ async def chat(request: Request):
     else: label = "Nenhuma Fonte Encontrada"
 
     # 4. SYNTHESIS
-    prompt = f"""Use ONLY context to answer: '{q}'
-    Rules:
-    1. STYLE: Senior Investment Analyst. 
+    prompt = f"""Use the provided context to analyze the following query: '{q}'
+    
+    Rules for Senior Analyst:
+    1. STYLE: Professional Financial Advisor for GenAI Capital.
     2. DATA: 'market_cap' is in MILLIONS (2,425,500 = 2.4 Trillion). Always say 'Trillion' or 'Billion'.
     3. TARGET PRICE: This is MANDATORY. State it clearly if found in SQL context.
-    4. NO HALLUCINATION: If context for a company is empty, say 'No data found' instead of guessing.
+    4. NO HALLUCINATION: If the context for a specific field or company is not found, say so.
+    5. ANALYSIS: If context exists but is not an answer to a question (e.g., user pasted a report excerpt), provide a brief summary or insightful comment on it.
     
     Context:
     {ctx}"""
@@ -89,5 +90,5 @@ async def chat(request: Request):
     return {
         "answer": comp.choices[0].message.content,
         "source": label,
-        "type": "hybrid_auto"
+        "type": "hybrid_parallel_v7"
     }

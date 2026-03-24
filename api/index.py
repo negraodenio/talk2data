@@ -53,8 +53,9 @@ async def chat(request: Request):
         for ent in entities:
             res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(2).execute()
             if not res.data: res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(2).execute()
-            if res.data:
-                ctx += f"\n[SQL DATA]: {json.dumps(res.data)}\n"
+                for row in res.data:
+                    for k, v in row.items():
+                        ctx += f"   - {k}: {v}\n"
                 sources.append("SQL Database")
 
     # RAG Path
@@ -68,13 +69,15 @@ async def chat(request: Request):
     except: pass
 
     # Synthesis
-    prompt = f"""Use context to answer '{q}'. 
-    Rules: 
-    1. Strict English. 
-    2. No invention. 
-    3. Metrics: 'market_cap' is in MILLIONS (e.g., 2,425,500 = 2.4T). Always state 'Trillion' or 'Billion' for readability.
-    4. Explicitly search for 'target_price' in the context.
-    5. Context: {ctx}"""
+    prompt = f"""Use this context to answer: '{q}'
+    
+    1. STYLES: Professional Financial Analyst. 
+    2. DATA: Use '[SQL DATA]' for companies. METRIC SCALE: 'market_cap' is in MILLIONS, so '2,425,500' = 2.4 Trillion.
+    3. TARGET PRICE: This is MANDATORY. Search for 'target_price' in the SQL context below.
+    4. NO HALLUCINATION: If a metric is missing in context, say it's not available.
+    
+    Context:
+    {ctx}"""
     comp = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
     
     return {

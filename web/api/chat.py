@@ -51,49 +51,34 @@ async def chat(request: Request):
     context_text = ""
     used_sql = False
     used_rag = False
-    sql_data_found = []
-    entities_found = []
     
-    # 1. Classificação inteligente do tipo de pergunta
+    # ===== PASSO 1: CLASSIFICAÇÃO INTELIGENTE =====
     query_type = classify_query_type(question, client)
     
-    # 2. Se for pergunta sobre empresas específicas, busca no SQL
+    # ===== PASSO 2: BUSCA SQL (SEMPRE para perguntas sobre empresas) =====
     if query_type in ["company_specific", "hybrid"]:
-        entities = extract_companies(question, client)
+        entities_found = extract_companies(question, client)
         
-        for ent in entities:
-            # Busca relacional no Supabase (SQL)
+        for ent in entities_found:
             response = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(3).execute()
             if not response.data:
                 response = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(3).execute()
             
             if response.data:
-                # Ordenação Sênior via Python (Mais estável que o Postgrest)
                 sorted_data = sorted(response.data, key=lambda x: x.get('market_cap') or 0, reverse=True)
                 sql_rows = ""
                 for row in sorted_data:
                     m_cap = row.get('market_cap')
                     price = row.get('stock_price')
-                    m_cap_str = f"{m_cap:,.1f}" if m_cap else "N/A"
+                    m_cap_str = f"{m_cap:,.0f}" if m_cap else "N/A"
                     price_str = f"{price:,.2f}" if price else "N/A"
                     sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${price_str} | Market Cap: ${m_cap_str} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
                 
                 context_text += f"\n--- STOCK MARKET DATABASE: {ent.upper()} ---\n{sql_rows}\n"
                 used_sql = True
-                entities_found.append(ent)
-                sql_data_found.extend(sorted_data)
     
-    # 3. Avalia se os dados SQL são suficientes para a pergunta original
-    needs_macro = False
-    if query_type == "hybrid":
-        needs_macro = True
-    elif used_sql and sql_data_found:
-        needs_macro = check_if_needs_macro(question, context_text, client)
-    elif query_type == "macro_only":
-        needs_macro = True
-    
-    # 4. Busca RAG nos PDFs se necessário (ou se o SQL não achou nada em uma pergunta de empresa)
-    if needs_macro or (query_type == "company_specific" and not used_sql):
+    # ===== PASSO 3: BUSCA RAG (PARA PERGUNTAS MACRO) =====
+    if query_type in ["macro_only", "hybrid"]:
         try:
             res = client.embeddings.create(input=question, model="openai/text-embedding-3-small")
             query_embedding = res.data[0].embedding
@@ -106,18 +91,17 @@ async def chat(request: Request):
         except Exception as e:
             print("Erro na busca vetorial:", e)
     
-    # 5. Determinar fonte usada de forma clara para o UI
-    entity_label = f"({', '.join(entities_found)})" if entities_found else ""
+    # ===== PASSO 4: DETERMINAR FONTE =====
     if used_sql and used_rag:
-        source_used = f"Híbrido {entity_label} + PDF Macro"
+        source_used = "Híbrido (Dados de Mercado + Relatórios Macro)"
     elif used_sql:
-        source_used = f"Base Relacional SQL {entity_label}"
+        source_used = "Base de Dados SQL (Dados Fundamentais)"
     elif used_rag:
-        source_used = "Vector Search (Relatórios Macro PDF)"
+        source_used = "Vector Search (Relatórios Macroeconômicos)"
     else:
         source_used = "Nenhuma Fonte Encontrada"
-
-    # 6. Gerar Resposta Final com Agente de Síntese
+    
+    # ===== PASSO 5: GERAR RESPOSTA =====
     prompt = f"""
     You are a Senior Investment Research Assistant for GenAI Capital.
     The user is asking a financial question. Synthesize an answer based on the context provided below.
@@ -129,10 +113,11 @@ async def chat(request: Request):
     {question}
     
     [CRITICAL RULES]
-    1. ANSWER ONLY using the provided Context. 
-    2. If the data for a specific part of the query is missing, say you don't have it for that part, but answer the rest.
-    3. If the entire context is unrelated, say you don't have enough information.
+    1. ANSWER ONLY using the provided Context.
+    2. If the context has BOTH stock data AND macro data, COMBINE them in your answer.
+    3. If a specific piece of information is missing, say you don't have it.
     4. FINAL RESPONSE ALWAYS IN ENGLISH.
+    5. BE SPECIFIC with numbers and data from the context.
     """
     
     try:
@@ -152,12 +137,12 @@ async def chat(request: Request):
     }
 
 def classify_query_type(question: str, client: OpenAI) -> str:
-    """Classifica a pergunta em categories: company_specific, macro_only, hybrid"""
+    """Classifica a pergunta em: company_specific, macro_only, hybrid"""
     prompt = f"""
     Classify this financial question into ONE of these categories:
-    - "company_specific": Asks about specific stocks, prices, market cap, dividends.
-    - "macro_only": Asks about economic trends, inflation, GDP, global markets, OECD reports.
-    - "hybrid": Asks about both (e.g., "How does inflation affect NVIDIA?")
+    - "company_specific": Asks about specific companies, stocks, financial metrics (price, PE, dividend, market cap)
+    - "macro_only": Asks about economic trends, inflation, GDP, global markets, OECD, projections
+    - "hybrid": Asks about BOTH specific companies AND macro context
     
     Question: "{question}"
     
@@ -174,39 +159,25 @@ def classify_query_type(question: str, client: OpenAI) -> str:
         return "hybrid"
 
 def extract_companies(question: str, client: OpenAI) -> list:
-    """Extrai nomes ou tickers de empresas"""
-    prompt = f"""
-    Extract a COMMA-SEPARATED list of ONLY company names or stock tickers from: '{question}'. 
-    Ignore organizations like OECD, IMF, FED. 
-    If none, return 'NONE'.
+    """Extrai empresas mencionadas na pergunta"""
+    ext_prompt = f"""
+    Analyze the following financial question: '{question}'. 
+    Extract a COMMA-SEPARATED list of ONLY company names or stock tickers mentioned. 
+    IMPORTANT: 
+    - Ignore macro organizations (OECD, FED, IMF, World Bank)
+    - Look for both full names (Amazon) and tickers (AMZN)
+    - If no companies are mentioned, return 'NONE'
+    
+    Return ONLY the names/tickers separated by commas.
     """
     try:
-        res = client.chat.completions.create(
+        ext_res = client.chat.completions.create(
             model="openai/gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ext_prompt}],
             temperature=0
         )
-        raw = res.choices[0].message.content.strip().replace(".", "").replace("\"", "")
-        if raw == "NONE": return []
-        return [e.strip() for e in raw.split(",") if len(e.strip()) > 1]
+        entity_raw = ext_res.choices[0].message.content.strip()
+        if entity_raw == "NONE": return []
+        return [e.strip() for e in entity_raw.split(",") if len(e.strip()) > 1]
     except:
         return []
-
-def check_if_needs_macro(question: str, context: str, client: OpenAI) -> bool:
-    """Verifica se os dados SQL são suficientes"""
-    prompt = f"""
-    Question: {question}
-    SQL Context: {context[:500]}
-    
-    Does the SQL data fully answer the question? Answer ONLY "yes" or "no".
-    If the question implies macro trends, answer "no".
-    """
-    try:
-        res = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
-        return res.choices[0].message.content.strip().lower() == "no"
-    except:
-        return True

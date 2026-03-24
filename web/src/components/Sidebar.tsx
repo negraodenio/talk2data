@@ -27,6 +27,10 @@ export default function Sidebar() {
         <div>
           <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Documentation</h2>
           <div className="space-y-1">
+            <Link href="/docs" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <span>Full Documentation</span>
+            </Link>
             <Link href="/prd" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
               <FileText className="w-4 h-4 text-indigo-500" />
               <span>Product Requirements (PRD)</span>

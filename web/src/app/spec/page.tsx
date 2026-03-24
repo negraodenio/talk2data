@@ -97,7 +97,7 @@ export default function SpecPage() {
               </div>
               <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 transition-hover hover:border-emerald-500/30">
                 <h4 className="font-semibold text-zinc-100 mb-1 italic text-xs uppercase tracking-widest text-emerald-500">Financial Precision</h4>
-                <p>Automated conversions: `0.0072` -> **0.72%** (Yield Correction).</p>
+                <p>Automated conversions: <code>0.0072</code> {"->"} **0.72%** (Yield Correction).</p>
               </div>
             </div>
           </section>

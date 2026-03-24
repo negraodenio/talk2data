@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, FileText, Database, Shield, LayoutDashboard, BrainCircuit, Terminal, Blocks, ListChecks } from "lucide-react";
+import { TrendingUp, FileText, Database, Shield, LayoutDashboard, BrainCircuit, Terminal, Blocks, ListChecks, ShieldCheck } from "lucide-react";
 
 export default function Sidebar() {
   return (

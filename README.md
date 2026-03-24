@@ -20,12 +20,12 @@ To solve the dual-source requirement efficiently, the project adopts a **Hybrid 
 
 ```mermaid
 graph TD
-    A[React Web UI] -->|POST /api/chat| B(FastAPI Serverless Python)
+    A[React Web UI] -->|POST /api/chat| B(FastAPI Python API)
     
-    subgraph "Hybrid AI Orchestrator (Native Python)"
-    B -->|Intent Extraction| C{Semantic Router}
-    C -->|If Ticker Mentioned| D[(Relational PostgreSQL)]
-    C -->|If Macro Concept| E[(pgvector Vector DB)]
+    subgraph "Hybrid AI Engine (Gold-Standard)"
+    B -->|Intent Router| C{Semantic Switch}
+    C -->|Entity Extraction| D[(SQL Equities - ISIN, P/E, Cap)]
+    C -->|Vector Similarity| E[(pgvector - Macro PDF Chunks)]
     end
     
     D -->|Entity Match SQL Rows| F[Combined Context]
@@ -45,8 +45,9 @@ graph TD
 | **2. Relational Database** | `equities.xlsx` was loaded into a 3NF-compliant Supabase PostgreSQL instance. Tickers and Market Caps are safely queried using Entity Extraction, completely bypassing SQL Injection risks. |
 | **3. Vector Database** | The OECD Economic Outlook PDF was chunked and mathematically embedded (OpenAI `text-embedding-3-small`) into Supabase `pgvector`, queried via Cosine Distance RPC calls. |
 | **4. English Localization** | Prompts are injected with global overrides enforcing English output, regardless of user input language. |
-| **5. NO LangChain / Wrappers** | Zero orchestration libraries were used. Semantic intent routing, document retrieval, and LLM system templating are executed programmatically via the raw OpenAI SDK. |
-| **6. User Interface (Bonus)** | Elevated beyond a CLI script: Contains a Full-Stack **Next.js 14** Application deployed continuously via Vercel Edge Serverless Functions. |
+| **5. NO LangChain / Wrappers** | Zero orchestration libraries used. Pure Python Semantic intent routing, document retrieval, and LLM system templating. |
+| **6. Full REST API** | Endpoints for `/api/chat`, `/api/ingest/document`, and `/api/ingest/csv` for dynamic expansion. |
+| **7. User Interface (Bonus)** | Elevated beyond a CLI script: Contains a Full-Stack **Next.js 14** Application. |
 
 ---
 

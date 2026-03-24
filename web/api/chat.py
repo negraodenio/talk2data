@@ -66,18 +66,20 @@ async def chat(request: Request):
         print(f"--- DEBUG: Entidade Extraída: '{entity}' ---")
         
         if entity != "NONE" and len(entity) > 1:
-            # Busca relacional no Supabase (SQL) - Ordenado por Market Cap para pegar a principal
-            response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").order("market_cap", desc=True).limit(3).execute()
+            # Busca relacional no Supabase (SQL) - Buscamos e ordenamos no Python para estabilidade
+            response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").limit(5).execute()
             if not response.data:
                 # Tentar por ticker fallback
-                response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").order("market_cap", desc=True).limit(3).execute()
+                response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").limit(5).execute()
             
             if response.data:
+                # Ordenação Sênior via Python (Mais estável que o Postgrest em MVPs)
+                sorted_data = sorted(response.data, key=lambda x: x.get('market_cap') or 0, reverse=True)
+                
                 sql_rows = ""
-                for row in response.data:
+                for row in sorted_data:
                     m_cap = row.get('market_cap')
                     price = row.get('stock_price')
-                    # Formatação legível: 800,000,000.0
                     m_cap_str = f"{m_cap:,.1f}" if m_cap else "N/A"
                     price_str = f"{price:,.2f}" if price else "N/A"
                     
@@ -86,7 +88,7 @@ async def chat(request: Request):
                 context_text += f"\n--- STOCK MARKET DATABASE (RELATIONAL) ---\n{sql_rows}\n"
                 used_sql = True
     except Exception as e:
-        print("Erro na extração de entidade:", e)
+        print("Erro crítico na SQL:", e)
 
     # 2. Busca RAG nos PDFs (Intent Router: Só rodar se houver contexto macro ou se o SQL falhou)
     macro_keywords = ["macro", "oecd", "inflation", "growth", "tariffs", "global", "economy", "impact", "trends", "report", "resilience"]

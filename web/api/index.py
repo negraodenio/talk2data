@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from openai import OpenAI
-import os, json, pandas as pd, PyPDF2, io
+import os, json, pandas as pd, io
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,24 +38,20 @@ async def chat(request: Request):
     q = data.get("question", "")
     
     ctx = ""
-    used_sql = False
-    used_rag = False
+    sources_avail = []
     
-    # 1. ALWAYS SEARCH SQL (Parallel)
+    # 1. SQL SEARCH
     entities = extract_entities(q)
     for ent in entities:
-        # Search BOTH ticker and name
         clean_ent = ent.split(" ")[0].strip("()[],")
         res = supabase.table("equities").select("*").or_(f"ticker.ilike.%{clean_ent}%,name.ilike.%{clean_ent}%").limit(1).execute()
-        
         if res.data:
             ctx += f"\n--- [SQL DATA: {clean_ent.upper()}] ---\n"
             for row in res.data:
-                for k, v in row.items(): 
-                    ctx += f"   - {k}: {v}\n"
-            used_sql = True
+                for k, v in row.items(): ctx += f"   - {k}: {v}\n"
+            sources_avail.append("SQL Database")
 
-    # 2. ALWAYS SEARCH RAG (Always-on, NO length check)
+    # 2. RAG SEARCH
     try:
         emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
         emb = emb_res.data[0].embedding
@@ -63,32 +59,43 @@ async def chat(request: Request):
         if rag_res.data:
             docs = [d['content'] for d in rag_res.data]
             ctx += "\n--- [MACROECONOMIC REPORTS (PDF RAG)] ---\n" + "\n\n".join(docs)
-            used_rag = True
+            sources_avail.append("Macro Vector Store")
     except: pass
 
-    # 3. SOURCE LABELING (STRICT)
-    if used_sql and used_rag: label = "Híbrido (Dados de Mercado + Relatórios Macro)"
-    elif used_sql: label = "Base de Dados SQL (Dados Fundamentais)"
-    elif used_rag: label = "Vector Search (Relatórios Macroeconômicos)"
-    else: label = "Nenhuma Fonte Encontrada"
-
-    # 4. SYNTHESIS
-    prompt = f"""Use the provided context to analyze the following query: '{q}'
+    # 3. SYNTHESIS (DYNAMIC LABELING)
+    prompt = f"""Target Query: '{q}'
     
     Rules for Senior Analyst:
     1. STYLE: Professional Financial Advisor for GenAI Capital.
-    2. DATA: 'market_cap' is in MILLIONS (2,425,500 = 2.4 Trillion). Always say 'Trillion' or 'Billion'.
-    3. TARGET PRICE: This is MANDATORY. State it clearly if found in SQL context.
-    4. NO HALLUCINATION: If the context for a specific field or company is not found, say so.
-    5. ANALYSIS: If context exists but is not an answer to a question (e.g., user pasted a report excerpt), provide a brief summary or insightful comment on it.
+    2. DATA: 'market_cap' is in MILLIONS (3,649,450 = 3.6 Trillion). Always say 'Trillion' or 'Billion'.
+    3. TARGET PRICE: Search for 'target_price' in SQL context. If found, STATE IT.
+    4. NO HALLUCINATION: If context for a company is empty, say NO DATA FOUND.
+    5. SOURCE LABELING: You MUST choose the most accurate source tag based on which context data you ACTUALLY use for your answer:
+       - 'Base de Dados SQL (Dados Fundamentais)' (If you only use SQL data)
+       - 'Vector Search (Relatórios Macroeconômicos)' (If you only use Macro data)
+       - 'Híbrido (Dados de Mercado + Relatórios Macro)' (If you use both)
+       - 'Nenhuma Fonte Encontrada' (If you use none)
+
+    OUTPUT FORMAT: Return a RAW JSON string with two keys: "answer" and "source".
     
     Context:
     {ctx}"""
     
-    comp = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.1)
+    comp = client.chat.completions.create(
+        model="openai/gpt-4o-mini", 
+        messages=[{"role": "user", "content": prompt}], 
+        temperature=0.1,
+        response_format={"type": "json_object"}
+    )
     
-    return {
-        "answer": comp.choices[0].message.content,
-        "source": label,
-        "type": "hybrid_parallel_v7"
-    }
+    try:
+        res_json = json.loads(comp.choices[0].message.content)
+        return {
+            "answer": res_json.get("answer", "No data found."),
+            "source": res_json.get("source", "Nenhuma Fonte Encontrada")
+        }
+    except:
+        return {
+            "answer": comp.choices[0].message.content,
+            "source": "Híbrido (Erro de Formatação)"
+        }

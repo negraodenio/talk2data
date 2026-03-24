@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TrendingUp, FileText, Database, Shield, LayoutDashboard, BrainCircuit, Terminal, Blocks, ListChecks, ShieldCheck, Award, Cpu } from "lucide-react";
 
 export default function Sidebar() {

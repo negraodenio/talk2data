@@ -1,1 +1,0 @@
-{'message': "Could not find the 'dividend_yield' column of 'equities' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}

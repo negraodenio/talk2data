@@ -52,7 +52,10 @@ async def chat(request: Request):
         entities = extract_entities(q)
         for ent in entities:
             res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(2).execute()
-            if not res.data: res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(2).execute()
+            if not res.data: 
+                res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(2).execute()
+            
+            if res.data:
                 for row in res.data:
                     for k, v in row.items():
                         ctx += f"   - {k}: {v}\n"

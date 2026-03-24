@@ -22,14 +22,16 @@ client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.environ.get(
 
 # --- HELPERS ---
 def extract_entities(q):
-    prompt = f"Extract company names/tickers from: '{q}'. Return COMMA-SEPARATED list or 'NONE'. Ignore macro names like OECD."
+    # SENIOR: Return only clean keywords. E.g., 'Amazon (AMZN US)' -> 'Amazon, AMZN'
+    prompt = f"Extract only clean company names/tickers from: '{q}'. Return COMMA-SEPARATED list (e.g. 'Amazon, MSFT'). Return 'NONE' if no companies found."
     res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0)
     content = res.choices[0].message.content.strip()
-    return [] if content == "NONE" else [e.strip() for e in content.split(",")]
+    if content == "NONE": return []
+    return [e.strip().split(" ")[0] for e in content.split(",") if len(e.strip()) > 1]
 
 # --- ENDPOINTS ---
 @app.get("/")
-def health(): return {"status": "online", "source": "ULTRA-GOLD-ORCHESTRATOR-V5"}
+def health(): return {"status": "online", "source": "ULTRA-GOLD-ORCHESTRATOR-V6-SENIOR"}
 
 @app.post("/api/chat")
 async def chat(request: Request):
@@ -39,21 +41,20 @@ async def chat(request: Request):
     ctx = ""
     sources = []
     
-    # 1. SEMPRE BUSCAR SQL (Para garantir que NADA escape)
+    # 1. FUZZY SQL SEARCH (SENIOR FIX)
     entities = extract_entities(q)
     for ent in entities:
-        # Busca por ticker ou nome (ilike handle both)
-        res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(1).execute()
-        if not res.data:
-            res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(1).execute()
+        # SENIOR: Search both ticker and name by the first word of the entity
+        clean_ent = ent.split(" ")[0].strip("()[],")
+        res = supabase.table("equities").select("*").or_(f"ticker.ilike.%{clean_ent}%,name.ilike.%{clean_ent}%").limit(2).execute()
         
         if res.data:
-            ctx += f"\n--- [SQL DATA FOR {ent.upper()}] ---\n"
+            ctx += f"\n--- [SQL DATA: {clean_ent.upper()}] ---\n"
             for row in res.data:
                 for k, v in row.items(): ctx += f"   - {k}: {v}\n"
             sources.append("SQL Database")
 
-    # 2. SEMPRE BUSCAR RAG (Para garantir contexto macro)
+    # 2. RAG SEARCH (Always-on)
     try:
         emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
         emb = emb_res.data[0].embedding
@@ -63,10 +64,10 @@ async def chat(request: Request):
             sources.append("Macro Vector Store")
     except: pass
 
-    # 3. LABEL PROFISSIONAL (Exatamente como o usuário quer)
+    # 3. LABELING (SENIOR FIX)
     final_sources = list(set(sources))
     if "SQL Database" in final_sources and "Macro Vector Store" in final_sources:
-        source_label = "Híbrido (SQL + RAG)"
+        source_label = "Híbrido (Dados de Mercado + Relatórios Macro)"
     elif "SQL Database" in final_sources:
         source_label = "Base de Dados SQL (Dados Fundamentais)"
     elif "Macro Vector Store" in final_sources:
@@ -76,11 +77,11 @@ async def chat(request: Request):
 
     # 4. SYNTHESIS
     prompt = f"""Use this context to answer: '{q}'
-    
-    1. STYLE: Senior Financial Analyst. 
-    2. DATA: 'market_cap' is in MILLIONS, so '2,425,500' = 2.4 Trillion. 'pe_ratio' exists.
-    3. MANDATORY: Search for 'target_price' in SQL context. If found, STATE IT.
-    4. NO HALLUCINATION: If a metric is missing in context, say I don't have it.
+    Rules for Senior Analyst:
+    1. STYLE: Professional Financial Advisor for GenAI Capital.
+    2. DATA: 'market_cap' is in MILLIONS (2,425,500 = 2.4 Trillion). Always say 'Trillion' or 'Billion'.
+    3. TARGET PRICE: This is MANDATORY. State it clearly if found in SQL context.
+    4. NO HALLUCINATION: If the provided context for a ticker is empty, do NOT use internal knowledge.
     
     Context:
     {ctx}"""

@@ -4,6 +4,7 @@ supabase
 pandas
 openai
 pypdf
+PyPDF2
 python-dotenv
 tiktoken
 openpyxl

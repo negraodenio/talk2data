@@ -62,17 +62,24 @@ async def chat(request: Request):
         entity = ext_res.choices[0].message.content.strip()
         
         if entity != "NONE" and len(entity) > 1:
-            # Busca relacional no Supabase (SQL)
-            response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").limit(3).execute()
+            # Busca relacional no Supabase (SQL) - Ordenado por Market Cap para pegar a principal
+            response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").order("market_cap", desc=True).limit(3).execute()
             if not response.data:
                 # Tentar por ticker fallback
-                response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").limit(3).execute()
+                response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").order("market_cap", desc=True).limit(3).execute()
             
             if response.data:
                 sql_rows = ""
                 for row in response.data:
-                    sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${row.get('stock_price')} | Market Cap: ${row.get('market_cap')} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
-                context_text += f"\n--- STOCK MARKET DATABASE ---\n{sql_rows}\n"
+                    m_cap = row.get('market_cap')
+                    price = row.get('stock_price')
+                    # Formatação legível: 800,000,000.0
+                    m_cap_str = f"{m_cap:,.1f}" if m_cap else "N/A"
+                    price_str = f"{price:,.2f}" if price else "N/A"
+                    
+                    sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${price_str} | Market Cap: ${m_cap_str} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
+                
+                context_text += f"\n--- STOCK MARKET DATABASE (RELATIONAL) ---\n{sql_rows}\n"
                 used_sql = True
     except Exception as e:
         print("Erro na extração de entidade:", e)

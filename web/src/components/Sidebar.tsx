@@ -52,6 +52,10 @@ export default function Sidebar() {
               <ListChecks className="w-4 h-4" />
               <span>Requirements Tracker</span>
             </Link>
+            <Link href="/matrix" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 p-2 rounded-lg transition-colors">
+              <Award className="w-4 h-4 text-amber-500" />
+              <span>Implementation Matrix</span>
+            </Link>
             <Link href="/readme" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
               <FileText className="w-4 h-4" />
               <span>Main README</span>

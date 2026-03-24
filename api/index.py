@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from openai import OpenAI
@@ -21,21 +21,20 @@ supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get(
 client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.environ.get("OPENROUTER_API_KEY"))
 
 # --- HELPERS ---
-def classify_query(question):
-    prompt = f"Analyze: '{question}'. Return ONLY 'company_specific', 'macro_only', or 'hybrid'."
+def classify_query(q):
+    prompt = f"Analyze: '{q}'. Return ONLY 'company_specific', 'macro_only', or 'hybrid'."
     res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
     return res.choices[0].message.content.strip().lower()
 
-def extract_entities(question):
-    prompt = f"Extract company names/tickers from: '{question}'. Return COMMA-SEPARATED list or 'NONE'."
+def extract_entities(q):
+    prompt = f"Extract company names/tickers from: '{q}'. Return COMMA-SEPARATED list or 'NONE'. Ignore macro names like OECD."
     res = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
     content = res.choices[0].message.content.strip()
     return [] if content == "NONE" else [e.strip() for e in content.split(",")]
 
 # --- ENDPOINTS ---
-
 @app.get("/")
-def health(): return {"status": "online", "compliant": True}
+def health(): return {"status": "online", "source": "ULTRA-GOLD-ORCHESTRATOR"}
 
 @app.post("/api/chat")
 async def chat(request: Request):
@@ -47,58 +46,60 @@ async def chat(request: Request):
     
     q_type = classify_query(q)
     
-    # SQL Path
+    # 1. SQL PATH
     if q_type in ['company_specific', 'hybrid']:
         entities = extract_entities(q)
         for ent in entities:
+            # Busca por nome ou ticker
             res = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(2).execute()
-            if not res.data: 
+            if not res.data:
                 res = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(2).execute()
             
             if res.data:
+                ctx += f"\n[SQL DATA FOR {ent.upper()}]:\n"
                 for row in res.data:
                     for k, v in row.items():
                         ctx += f"   - {k}: {v}\n"
-                sources.append("ULTRA-GOLD-SQL-DATABASE")
+                sources.append("SQL Database")
 
-    # RAG Path
-    try:
-        emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
-        emb = emb_res.data[0].embedding
-        rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 3}).execute()
-        if rag_res.data:
-            ctx += "\n[MACRO CONTEXT]: " + "\n".join([d['content'] for d in rag_res.data])
-            sources.append("Macro Vector Store")
-    except: pass
+    # 2. RAG PATH
+    if q_type in ['macro_only', 'hybrid']:
+        try:
+            emb_res = client.embeddings.create(input=q, model="openai/text-embedding-3-small")
+            emb = emb_res.data[0].embedding
+            rag_res = supabase.rpc("match_documents", {"query_embedding": emb, "match_count": 5}).execute()
+            if rag_res.data:
+                ctx += "\n[MACROECONOMIC REPORTS (PDF RAG)]:\n" + "\n\n".join([d['content'] for d in rag_res.data])
+                sources.append("Macro Vector Store")
+        except Exception as e:
+            print(f"RAG Error: {e}")
 
-    # Synthesis
+    # 3. DETERMINAR LABEL PROFISSIONAL
+    final_sources = list(set(sources))
+    if "SQL Database" in final_sources and "Macro Vector Store" in final_sources:
+        source_label = "Híbrido (SQL + RAG)"
+    elif "SQL Database" in final_sources:
+        source_label = "Base de Dados SQL (Dados Fundamentais)"
+    elif "Macro Vector Store" in final_sources:
+        source_label = "Vector Search (Relatórios Macroeconômicos)"
+    else:
+        source_label = "Nenhuma Fonte Encontrada"
+
+    # 4. SYNTHESIS
     prompt = f"""Use this context to answer: '{q}'
     
-    1. STYLES: Professional Financial Analyst. 
-    2. DATA: Use '[SQL DATA]' for companies. METRIC SCALE: 'market_cap' is in MILLIONS, so '2,425,500' = 2.4 Trillion.
-    3. TARGET PRICE: This is MANDATORY. Search for 'target_price' in the SQL context below.
-    4. NO HALLUCINATION: If a metric is missing in context, say it's not available.
+    1. STYLE: Professional Investment Analyst. 
+    2. DATA: market_cap is in MILLIONS (e.g., 2,425,500 = 2.4 Trillion). Always say 'Trillion' or 'Billion'.
+    3. TARGET PRICE: Search for 'target_price' in SQL context. If found, state it clearly.
+    4. NO HALLUCINATION: If a metric is missing, say you don't have it.
     
     Context:
     {ctx}"""
-    comp = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+    
+    comp = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.1)
     
     return {
         "answer": comp.choices[0].message.content,
-        "source": " + ".join(list(set(sources))) or "General Knowledge",
+        "source": source_label,
         "type": q_type
     }
-
-@app.post("/api/ingest/csv")
-async def ingest_csv(file: UploadFile = File(...)):
-    df = pd.read_excel(io.BytesIO(await file.read()))
-    # Simplified logic from ingest_final_gold.py
-    records = json.loads(df.to_json(orient='records'))
-    # Note: Real implementation would use the brute-force mapping logic here.
-    # For now, we confirm the endpoint exists as per requirements.
-    return {"message": f"Successfully received {len(df)} rows for processing."}
-
-@app.post("/api/ingest/document")
-async def ingest_doc(file: UploadFile = File(...)):
-    # Simplified logic from extract_pdf.py
-    return {"message": f"Successfully received {file.filename} for embedding."}

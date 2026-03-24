@@ -59,7 +59,7 @@ async def chat(request: Request):
                 for row in res.data:
                     for k, v in row.items():
                         ctx += f"   - {k}: {v}\n"
-                sources.append("SQL Database")
+                sources.append("ULTRA-GOLD-SQL-DATABASE")
 
     # RAG Path
     try:

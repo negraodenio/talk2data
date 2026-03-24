@@ -54,12 +54,16 @@ async def chat(request: Request):
     
     # 1. Extração Inteligente da Empresa (Text-to-SQL simplificado / Entity Extraction)
     try:
-        ext_prompt = f"Analyze the following question: '{question}'. Extract ONLY the company name or financial ticker mentioned. If none is mentioned, answer 'NONE'. Return ONLY the exact name or ticker, without punctuation."
+        ext_prompt = f"Analyze the following financial question: '{question}'. Extract ONLY the name of the publicly traded company or stock ticker mentioned. IMPORTANT: Ignore macroeconomic organizations, government agencies, or reports (e.g., OECD, IMF, FED, G20). Return ONLY the exact company name or ticker. If no specific company is mentioned, answer 'NONE'."
         ext_res = client.chat.completions.create(
             model="openai/gpt-4o-mini",
-            messages=[{"role": "user", "content": ext_prompt}]
+            messages=[{"role": "user", "content": ext_prompt}],
+            temperature=0
         )
-        entity = ext_res.choices[0].message.content.strip()
+        entity = ext_res.choices[0].message.content.strip().replace(".", "").replace("'", "").replace("\"", "")
+        
+        # Log de depuração básico (visível no terminal do usuário)
+        print(f"--- DEBUG: Entidade Extraída: '{entity}' ---")
         
         if entity != "NONE" and len(entity) > 1:
             # Busca relacional no Supabase (SQL) - Ordenado por Market Cap para pegar a principal

@@ -67,7 +67,7 @@ export default function Sidebar() {
           <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Stack</h2>
           <div className="space-y-2 p-3 rounded-lg border border-zinc-800/50 bg-zinc-900/30 text-xs text-zinc-400">
             <div className="flex justify-between items-center"><span>Frontend</span><span className="text-zinc-300">Next.js 14</span></div>
-            <div className="flex justify-between items-center"><span>Backend</span><span className="text-zinc-300">FastAPI</span></div>
+            <div className="flex justify-between items-center"><span>Backend</span><span className="text-zinc-300">Python (FastAPI)</span></div>
             <div className="flex justify-between items-center"><span>Vector DB</span><span className="text-zinc-300">Supabase pgvector</span></div>
             <div className="flex justify-between items-center"><span>LLM</span><span className="text-zinc-300">GPT-4o mini</span></div>
           </div>

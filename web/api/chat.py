@@ -52,41 +52,39 @@ async def chat(request: Request):
     used_sql = False
     used_rag = False
     
-    # 1. Extração Inteligente da Empresa (Text-to-SQL simplificado / Entity Extraction)
+    # 1. Extração Inteligente de Empresas (Multi-Entity Support)
+    entities_found = []
     try:
-        ext_prompt = f"Analyze the following financial question: '{question}'. Extract ONLY the name of the publicly traded company or stock ticker mentioned. IMPORTANT: Ignore macroeconomic organizations, government agencies, or reports (e.g., OECD, IMF, FED, G20). Return ONLY the exact company name or ticker. If no specific company is mentioned, answer 'NONE'."
+        ext_prompt = f"Analyze the following financial question: '{question}'. Extract a COMMA-SEPARATED list of ONLY company names or stock tickers mentioned. IMPORTANT: Ignore macro organizations (OECD, FED, etc). If no companies are mentioned, return 'NONE'. Return ONLY the names/tickers separated by commas."
         ext_res = client.chat.completions.create(
             model="openai/gpt-4o-mini",
             messages=[{"role": "user", "content": ext_prompt}],
             temperature=0
         )
-        entity = ext_res.choices[0].message.content.strip().replace(".", "").replace("'", "").replace("\"", "")
+        entity_raw = ext_res.choices[0].message.content.strip().replace(".", "").replace("'", "").replace("\"", "")
         
-        # Log de depuração básico (visível no terminal do usuário)
-        print(f"--- DEBUG: Entidade Extraída: '{entity}' ---")
-        
-        if entity != "NONE" and len(entity) > 1:
-            # Busca relacional no Supabase (SQL) - Buscamos e ordenamos no Python para estabilidade
-            response = supabase.table("equities").select("*").ilike("name", f"%{entity}%").limit(5).execute()
-            if not response.data:
-                # Tentar por ticker fallback
-                response = supabase.table("equities").select("*").ilike("ticker", f"%{entity}%").limit(5).execute()
-            
-            if response.data:
-                # Ordenação Sênior via Python (Mais estável que o Postgrest em MVPs)
-                sorted_data = sorted(response.data, key=lambda x: x.get('market_cap') or 0, reverse=True)
+        if entity_raw != "NONE" and len(entity_raw) > 1:
+            entities = [e.strip() for e in entity_raw.split(",") if len(e.strip()) > 1]
+            for ent in entities:
+                # Busca relacional no Supabase (SQL)
+                response = supabase.table("equities").select("*").ilike("name", f"%{ent}%").limit(3).execute()
+                if not response.data:
+                    response = supabase.table("equities").select("*").ilike("ticker", f"%{ent}%").limit(3).execute()
                 
-                sql_rows = ""
-                for row in sorted_data:
-                    m_cap = row.get('market_cap')
-                    price = row.get('stock_price')
-                    m_cap_str = f"{m_cap:,.1f}" if m_cap else "N/A"
-                    price_str = f"{price:,.2f}" if price else "N/A"
+                if response.data:
+                    # Ordenação Sênior via Python
+                    sorted_data = sorted(response.data, key=lambda x: x.get('market_cap') or 0, reverse=True)
+                    sql_rows = ""
+                    for row in sorted_data:
+                        m_cap = row.get('market_cap')
+                        price = row.get('stock_price')
+                        m_cap_str = f"{m_cap:,.1f}" if m_cap else "N/A"
+                        price_str = f"{price:,.2f}" if price else "N/A"
+                        sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${price_str} | Market Cap: ${m_cap_str} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
                     
-                    sql_rows += f"- Company: {row.get('name')} ({row.get('ticker')}) | Price: ${price_str} | Market Cap: ${m_cap_str} | PE Ratio: {row.get('pe_ratio')} | Div Yield: {row.get('dividend_yield')}\n"
-                
-                context_text += f"\n--- STOCK MARKET DATABASE (RELATIONAL) ---\n{sql_rows}\n"
-                used_sql = True
+                    context_text += f"\n--- STOCK MARKET DATABASE: {ent.upper()} ---\n{sql_rows}\n"
+                    used_sql = True
+                    entities_found.append(ent)
     except Exception as e:
         print("Erro crítico na SQL:", e)
 
@@ -99,7 +97,6 @@ async def chat(request: Request):
             res = client.embeddings.create(input=question, model="openai/text-embedding-3-small")
             query_embedding = res.data[0].embedding
             
-            # Aumentado para 5 para dar mais fôlego à resposta híbrida
             response = supabase.rpc("match_documents", {"query_embedding": query_embedding, "match_count": 5}).execute()
             if response.data:
                 docs = [doc['content'] for doc in response.data]
@@ -108,10 +105,11 @@ async def chat(request: Request):
         except Exception as e:
             print("Erro na busca vetorial:", e)
 
+    entity_label = f"({', '.join(entities_found)})" if entities_found else ""
     if used_sql and used_rag:
-        source_used = "Híbrido (SQL Data + PDF Vectors)"
+        source_used = f"Híbrido {entity_label} + PDF"
     elif used_sql:
-        source_used = "Base Relacional (SQL Equities)"
+        source_used = f"SQL Database {entity_label}"
     elif used_rag:
         source_used = "Vector Search (Macro PDFs)"
     else:

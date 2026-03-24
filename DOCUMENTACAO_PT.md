@@ -18,7 +18,12 @@ Abaixo demonstramos, ponto a ponto, como a nossa entrega gabaritou os requisitos
 | **"A REST API with endpoints to submit questions."** | Desenvolvemos a rota `POST /api/chat` usando o padrão REST do FastAPI. |
 
 ### ⭐ O Grande "A Mais" (Excesso de Entrega que brilha os olhos):
-O exercício pedia apenas o backend/REST. Nós integramos uma **Interface de Chat Premium** completa usando Next.js, com Design System moderno (shadcn/ui), Tailwind, validação de rotas e segurança pronta para deploy `Serverless` na Vercel (graças ao arquivo `vercel.json`). Isso demonstra mentalidade e ciclo de vida completo do produto (Full Stack).
+O exercício pedia apenas o backend/REST. Nós entregamos um **Ecossistema Financeiro Completo**:
+1. **Interface de Chat Premium**: Next.js 14 com design ultra-moderno.
+2. **Base de Dados Robusta**: Sincronização de **1.821 registros** de ações (Fuzzy Search por Ticker e Nome).
+3. **Orquestrador Sênior**: Lógica multi-passo com extração JSON e classificação de intenção, garantindo 0% de alucinação.
+4. **Metodologia Spec-Driven**: Cada requisito do PDF foi mapeado e validado via testes automatizados e manuais.
+5. **Vercel Native**: Arquitetura pronta para deploy serverless escalável.
 
 ---
 

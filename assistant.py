@@ -65,7 +65,7 @@ def formatar_dados_sql(dados):
             'target': d.get('target_price', 'N/A'),
             'cap': mcap_str,
             'pe': d.get('pe_ratio', 'N/A'),
-            'yield': d.get('dividend_yield', 'N/A'),
+            'yield': f"{float(d.get('dividend_yield', 0)) * 100:.2f}%" if d.get('dividend_yield') else 'N/A',
             'isin': d.get('isin', 'N/A')
         })
     return fmt

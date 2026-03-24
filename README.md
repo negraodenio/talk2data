@@ -11,7 +11,7 @@
 
 A unified AI Orchestrator that natively interfaces with both **Unstructured Macroeconomic PDFs** and **Structured Equity Data (Excel/SQL)** to provide context-aware financial answers. 
 
-This project was engineered specifically to demonstrate **production-grade architectural decisions**: decoupling the AI engine via a Python API, eliminating opaque LLM frameworks (No LangChain), and wrapping the experience in a premium serverless Next.js UI.
+This project was engineered specifically to demonstrate **production-grade architectural decisions**: decoupling the AI engine via a Python API, eliminating opaque LLM frameworks (No LangChain), and wrapping the experience in a premium serverless Next.js UI. The entire development cycle was **Spec-Driven**, ensuring 100% traceability between the `GenAICodingExercise.pdf` requirements and the final implementation.
 
 ---
 

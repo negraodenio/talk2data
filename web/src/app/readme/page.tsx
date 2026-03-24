@@ -17,7 +17,7 @@ export default function ReadmePage() {
             <h1 className="text-4xl font-bold text-white tracking-tight">GenAI Capital: RAG Assistant</h1>
             <p className="text-lg text-emerald-400 font-medium">Senior AI Engineer Technical Assessment</p>
             <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-              A unified AI Orchestrator interfacing natively with Unstructured Macroeconomic PDFs & Structured Equity Data.
+              A **Spec-Driven** AI Orchestrator interfacing natively with Unstructured Macroeconomic PDFs & a curated database of **1,821 Equity Records**.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
               <span className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-xs font-medium">Python 3.12</span>

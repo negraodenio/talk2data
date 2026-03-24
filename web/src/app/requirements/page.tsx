@@ -57,7 +57,7 @@ export default function RequirementsPage() {
                   <span className="text-xs font-semibold text-emerald-500 uppercase tracking-wider">Delivered</span>
                   <h3 className="text-lg font-medium text-emerald-400">Unified Supabase Infrastructure</h3>
                   <p className="text-sm text-zinc-300">
-                    Utilized <strong>Supabase</strong> to elegantly handle both within the same cluster. <code>PostgreSQL</code> strictly manages the relational equities, while the <code>pgvector</code> extension handles the 1536-dimensional math locally.
+                    Utilized <strong>Supabase</strong> to elegantly handle both within the same cluster. <code>PostgreSQL</code> strictly manages a verified base of <strong>1,821 Equities</strong>, while the <code>pgvector</code> extension handles the 1536-dimensional math locally.
                   </p>
                 </div>
               </div>

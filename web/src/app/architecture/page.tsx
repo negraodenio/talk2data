@@ -61,7 +61,7 @@ export default function ArchitecturePage() {
               <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-purple-400" /> Infrastructure Layer (Dual Database)
               </h3>
-              <p className="text-sm text-zinc-400 mb-6">Supabase elegantly fulfills the requirement of having both a Relational PostgreSQL Database and a Vector Database within the same unified engine via the <code>pgvector</code> extension.</p>
+              <p className="text-sm text-zinc-400 mb-6">Supabase elegantly fulfills the requirement of having both a Relational PostgreSQL Database and a Vector Database within the same unified engine. The relational side strictly manages **1,821 verified equity records** via the <code>pgvector</code> extension.</p>
               
               <div className="grid md:grid-cols-2 gap-8 mt-6 relative z-10">
                 <div>

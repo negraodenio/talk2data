@@ -68,7 +68,13 @@ async def chat(request: Request):
     except: pass
 
     # Synthesis
-    prompt = f"Use context to answer '{q}'. Rules: 1. Strict English. 2. No invention. 3. Be professional.\nContext: {ctx}"
+    prompt = f"""Use context to answer '{q}'. 
+    Rules: 
+    1. Strict English. 
+    2. No invention. 
+    3. Metrics: 'market_cap' is in MILLIONS (e.g., 2,425,500 = 2.4T). Always state 'Trillion' or 'Billion' for readability.
+    4. Explicitly search for 'target_price' in the context.
+    5. Context: {ctx}"""
     comp = client.chat.completions.create(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
     
     return {

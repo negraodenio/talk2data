@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { TrendingUp, FileText, Database, Shield, LayoutDashboard, BrainCircuit, Terminal, Blocks, ListChecks, ShieldCheck, Award } from "lucide-react";
+import { TrendingUp, FileText, Database, Shield, LayoutDashboard, BrainCircuit, Terminal, Blocks, ListChecks, ShieldCheck, Award, Cpu } from "lucide-react";
 
 export default function Sidebar() {
   return (
@@ -28,13 +27,25 @@ export default function Sidebar() {
         <div>
           <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Documentation</h2>
           <div className="space-y-1">
-            <Link href="/architecture" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
-              <Blocks className="w-4 h-4" />
-              <span>System Architecture</span>
+            <Link href="/prd" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <span>Product Requirements (PRD)</span>
             </Link>
             <Link href="/spec" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Technical Spec (PRD)</span>
+              <Cpu className="w-4 h-4 text-emerald-500" />
+              <span>Technical Specification</span>
+            </Link>
+            <Link href="/matrix" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 p-2 rounded-lg transition-colors">
+              <Award className="w-4 h-4 text-amber-500" />
+              <span>Implementation Matrix</span>
+            </Link>
+            <Link href="/requirements" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 p-2 rounded-lg transition-colors">
+              <ListChecks className="w-4 h-4" />
+              <span>Requirements Tracker</span>
+            </Link>
+            <Link href="/architecture" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
+              <Blocks className="w-4 h-4" />
+              <span>Architecture Map</span>
             </Link>
             <Link href="/guardrails" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 p-2 rounded-lg transition-colors">
               <Shield className="w-4 h-4" />
@@ -43,18 +54,6 @@ export default function Sidebar() {
             <Link href="/rag" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
               <Database className="w-4 h-4" />
               <span>Vector RAG Engine</span>
-            </Link>
-            <Link href="/prompts" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors">
-              <Terminal className="w-4 h-4" />
-              <span>Prompt Engineering</span>
-            </Link>
-            <Link href="/requirements" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10 p-2 rounded-lg transition-colors">
-              <ListChecks className="w-4 h-4" />
-              <span>Requirements Tracker</span>
-            </Link>
-            <Link href="/matrix" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 p-2 rounded-lg transition-colors">
-              <Award className="w-4 h-4 text-amber-500" />
-              <span>Implementation Matrix</span>
             </Link>
             <Link href="/readme" className="flex items-center gap-3 text-sm text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 p-2 rounded-lg transition-colors">
               <FileText className="w-4 h-4" />

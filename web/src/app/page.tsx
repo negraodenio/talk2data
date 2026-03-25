@@ -31,7 +31,7 @@ export default function ChatDashboard() {
 
     try {
       // Chamada para a API Python (FastAPI) na porta 8000 (ou mesma origem se deployado no Vercel)
-      const apiUrl = process.env.NODE_ENV === "development" ? "http://localhost:8000/api/chat" : "/api/chat";
+      const apiUrl = process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000/api/chat" : "/api/chat";
       
       const response = await fetch(apiUrl, {
         method: "POST",
